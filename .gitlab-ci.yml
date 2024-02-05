@@ -1,0 +1,115 @@
+include:
+  - 'https://gitlab-templates.ddbuild.io/slack-notifier/v1/template.yml'
+
+variables:
+  CURRENT_CI_IMAGE: "6"
+  ANDROID_IMAGE_DOCKER: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/dd-sdk-android:$CURRENT_CI_IMAGE
+
+# Prebuild - install necessary tools
+
+.pre:
+  script:
+    - export PATH=$PATH:$HOME/.pub-cache/bin
+    - flutter upgrade
+    - flutter --version
+    - dart pub global activate melos
+    - dart pub global activate junitreport
+    - melos bootstrap
+    - mkdir -p $CI_PROJECT_DIR/.build/test-results/
+    - melos prepare
+
+stages:
+  - build
+  - flutter-test
+  - native-test
+  - integration-test
+
+# Build (And Analyze) Stage
+
+build-flutter:
+  stage: build
+  tags:
+    - mac-ventura-preview
+  script:
+    - !reference [.pre, script]
+    - melos run analyze:dart
+    - melos run unit_test:flutter
+    - melos run build:web
+  artifacts:
+    when: always
+    expire_in: "30 days"
+    reports:
+      junit: $CI_PROJECT_DIR/.build/test-results/*.xml
+
+# build-android:
+#   stage: build
+#   image: $ANDROID_IMAGE_DOCKER
+#   tags: [ "arch:amd64" ]
+#   script:
+#     - !reference [.pre, script]
+#     - melos run analyze:android
+#     - melos run build:android  
+
+build-ios:
+  stage: build
+  tags:
+    - mac-ventura-preview
+  script:
+    - !reference [.pre, script]
+    - pod repo update
+    - melos pub:get
+    - melos pod_update --no-select
+    - melos run analyze:ios
+    - melos run build:ios
+
+# Flutter Test
+# TODO: Check if this can run on the Android image
+
+flutter-test:
+  stage: flutter-test
+  tags:
+    - mac-ventura-preview
+  script:
+    - !reference [.pre, script]
+    - melos run unit_test:flutter
+
+# Device Unit Tests
+
+android-unit-test:
+  stage: native-test
+  image: $ANDROID_IMAGE_DOCKER
+  tags: [ "arch:amd64" ]
+  script:
+    - !reference [.pre, script]
+    - melos run unit_test:android
+
+ios-unit-test:
+  stage: native-test
+  tags:
+    - mac-ventura-preview
+  script:
+    - !reference [.pre, script]
+    - melos run unit_test:ios
+
+# Integration Tests
+
+android-integration-test:
+  stage: integration-test
+  image: $ANDROID_IMAGE_DOCKER
+  tags: [ "arch:amd64" ]
+  script:
+    - !reference [.pre, script]
+    - melos run integration_test:android
+
+ios-integration-test:
+  stage: integration-test
+  tags:
+    - mac-ventura-preview
+  script:
+    - !reference [.pre, script]
+    - melos run integration_test:ios
+
+# web-integration-test:
+#   stage: integration-test
+#   script:
+#     - melos run integration_test:web
