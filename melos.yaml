@@ -72,7 +72,7 @@ scripts:
   unit_test:ios:
     exec:
       concurrency: 1
-    run: xcodebuild test -workspace example/ios/Runner.xcworkspace -scheme Runner -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest'
+    run: xcodebuild test -workspace example/ios/Runner.xcworkspace -scheme Runner -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' | xcbeautify
     packageFilters:
       dirExists: 
         - 'ios'
