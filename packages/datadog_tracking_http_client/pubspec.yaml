@@ -13,7 +13,10 @@ dependencies:
   flutter:
     sdk: flutter
   datadog_flutter_plugin:
-    path: ../datadog_flutter_plugin
+    git:
+      url: 'https://github.com/carnextdoor/dd-sdk-flutter'
+      ref: 'release/datadog_flutter_plugin/v1.5.2'
+      path: packages/datadog_flutter_plugin
   uuid: ^4.0.0
   http: ^1.0.0
 
